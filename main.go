@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"os"
 	"fmt"
-	"strings"
 	"net/http"
+	"onecv-go-backend/models"
+	"os"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"onecv-go-backend/models"
 )
 
 func main() {
@@ -29,24 +30,28 @@ func main() {
 
 func registerStudents(c *gin.Context) {
 	var studentRegistrationData models.StudentRegistrationData
-    if err := c.BindJSON(&studentRegistrationData); err != nil {
+	if err := c.BindJSON(&studentRegistrationData); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: "The json sent does not have the correct structure and/or types"})
-        return
-    }
+		return
+	}
 
 	//Parameter validation (check for @gmail.com)
 	allEmails := append(studentRegistrationData.Students, studentRegistrationData.Teacher)
 	invalidEmails := getInvalidEmails(allEmails)
 
-	if (len(invalidEmails) > 0) {
+	if len(invalidEmails) > 0 {
 		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
-        return
+		return
 	}
 
 	//Register the student
-	res, err = models.RegisterStudents(studentRegistrationData)
+	err := models.RegisterStudents(studentRegistrationData)
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: err.Error()})
+		return
+	}
 
-    c.Status(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
 
 }
 
