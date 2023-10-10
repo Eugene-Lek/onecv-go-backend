@@ -2,16 +2,7 @@ package main
 
 import (
 	"strings"
-	"github.com/gin-gonic/gin"
 )
-
-// Need a router factory so that the same router can be assessed by test scripts
-func router() *gin.Engine {
-	router := gin.Default()
-	router.POST("/api/register", registerStudents)
-	router.GET("/api/commonstudents", getCommonStudents)
-	return router
-}
 
 type errorMessage struct {
 	Message string `json:"message" binding:"required"`

@@ -32,6 +32,14 @@ func main() {
 	router.Run("localhost:8080")
 }
 
+// Need a router factory so that the same router can be assessed by test scripts
+func router() *gin.Engine {
+	router := gin.Default()
+	router.POST("/api/register", registerStudents)
+	router.GET("/api/commonstudents", getCommonStudents)
+	return router
+}
+
 func registerStudents(c *gin.Context) {
 	var studentRegistrationData models.StudentRegistrationData
 	if err := c.BindJSON(&studentRegistrationData); err != nil {
