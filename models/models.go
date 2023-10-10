@@ -20,18 +20,15 @@ type StudentRegistrationData struct {
 
 func RegisterStudents(studentRegistrationData StudentRegistrationData) error {
 	teacher := studentRegistrationData.Teacher
+	students := studentRegistrationData.Students
 
-	// Check if teacher's email has been registered
-	err := checkTeacherExists(teacher)
+	err := checkTeacherStudentsExist(teacher, students)
 	if err != nil { return err }
 	
-	for _, student := range studentRegistrationData.Students {
-		// Check if student's email has been registered
-		err := checkStudentExists(student)
-		if err != nil { return err }
-
+	for _, student := range students {
 		rows, err := DB.Query(context.Background(), "INSERT INTO teacher_student_relationship(teacher, student) VALUES ($1, $2)", teacher, student)
 		if err != nil { return err }
+		
 		rows.Close()
 	}
 
