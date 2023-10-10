@@ -10,6 +10,7 @@ import (
 
 var ErrorMessages = map[string]string{
 	"nonExistentTeacher" : "The email '%v' does not exist as a teacher",
+	"nonExistentTeachers" : "The email(s) %v do(es) not exist as teacher(s)",
 	"nonExistentStudents" : "The email(s) %v do(es) not exist as student(s)",
 	"nonExistentTeacher&Students": "'%v' does not exist as a teacher and %v do(es) not exist as student(s)",
 }
@@ -25,6 +26,22 @@ func checkTeacherExists(teacher string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func checkTeachersExist(teachers []string) ([]string, error) {
+	nonExistentTeachers := []string{}
+
+	for _, teacher := range teachers {
+		// Check if teacher's email has been registered
+		teacherExists, err := checkTeacherExists(teacher)
+		if err != nil { return []string{}, err }
+
+		if !teacherExists {
+			nonExistentTeachers = append(nonExistentTeachers, fmt.Sprintf("'%v'", teacher))
+		}
+	}	
+
+	return nonExistentTeachers, nil
 }
 
 func checkStudentExists(student string) (bool, error) {
