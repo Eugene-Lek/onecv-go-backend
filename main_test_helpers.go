@@ -59,3 +59,14 @@ func addCheckStudentExistsQueries(mock pgxmock.PgxConnIface, students []string, 
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM student WHERE email = $1")).WithArgs(student).WillReturnRows(expectedStudentRow)
 	}	
 }
+
+func addCheckTeacherStudentRelationshipExistsQueries(mock pgxmock.PgxConnIface, teacher string, students []string, studentsRegistered []bool) {
+	for index, student := range students {
+		expectedRelationshipRow := pgxmock.NewRows([]string{"student"})
+		if (studentsRegistered[index]) {
+			expectedRelationshipRow.AddRow(student)
+		}
+		
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT student FROM teacher_student_relationship WHERE teacher = $1 AND student = $2")).WithArgs(teacher, student).WillReturnRows(expectedRelationshipRow)
+	}		
+}
