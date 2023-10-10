@@ -43,23 +43,31 @@ func router() *gin.Engine {
 func registerStudents(c *gin.Context) {
 	var studentRegistrationData models.StudentRegistrationData
 	if err := c.BindJSON(&studentRegistrationData); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: errorMessages["invalidDataType"]})
+		err := fmt.Errorf(errorMessages["invalidDataType"])
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorMessage{Message: message})			
 		return
 	}
 
-	//Parameter validation (check for @gmail.com)
+	//Parameter validation (remove duplicates, check for @gmail.com))
+	studentRegistrationData.Students = removeDuplicateStr(studentRegistrationData.Students)
+
 	allEmails := append(studentRegistrationData.Students, studentRegistrationData.Teacher)
 	invalidEmails := getInvalidEmails(allEmails)
 
 	if len(invalidEmails) > 0 {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
+		err := fmt.Errorf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorMessage{Message: message})				
 		return
 	}
 
 	//Register the student
 	err := models.RegisterStudents(studentRegistrationData)
+	fmt.Println(err)
 	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: err.Error()})
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorMessage{Message: message})		
 		return
 	}
 
@@ -67,7 +75,31 @@ func registerStudents(c *gin.Context) {
 
 }
 
+type commonStudentsResponse struct {
+	Students []string `json:"students"`
+}
+
 func getCommonStudents(c *gin.Context) {
-	teachers := c.Request.URL.Query()
-	fmt.Println(teachers)
+	queryParams := c.Request.URL.Query()
+	teachers := queryParams["teacher"]
+
+	//Parameter validation (remove duplicates, check for @gmail.com)
+	teachers = removeDuplicateStr(teachers)
+
+	invalidEmails := getInvalidEmails(teachers)
+	if len(invalidEmails) > 0 {
+		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
+		return
+	}
+
+	//Get common students
+	commonStudents, err := models.GetCommonStudents(teachers)
+	if err != nil {
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorMessage{Message: message})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, commonStudentsResponse{commonStudents})
+
 }
