@@ -7,12 +7,19 @@ import (
 	"onecv-go-backend/models"
 	"os"
 	"strings"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Some error occured. Err: %s", err)
+	}
+
 	var dbConnectionError error
 	models.DB, dbConnectionError = pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbConnectionError != nil {
@@ -21,17 +28,14 @@ func main() {
 	}
 	defer models.DB.Close(context.Background())
 
-	router := gin.Default()
-	router.POST("/api/register", registerStudents)
-	router.GET("/api/commonstudents", getCommonStudents)
-
+	router := router()
 	router.Run("localhost:8080")
 }
 
 func registerStudents(c *gin.Context) {
 	var studentRegistrationData models.StudentRegistrationData
 	if err := c.BindJSON(&studentRegistrationData); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: "The json sent does not have the correct structure and/or types"})
+		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: errorMessages["invalidDataType"]})
 		return
 	}
 
@@ -40,14 +44,14 @@ func registerStudents(c *gin.Context) {
 	invalidEmails := getInvalidEmails(allEmails)
 
 	if len(invalidEmails) > 0 {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
+		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
 		return
 	}
 
 	//Register the student
 	err := models.RegisterStudents(studentRegistrationData)
 	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{message: err.Error()})
+		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: err.Error()})
 		return
 	}
 
