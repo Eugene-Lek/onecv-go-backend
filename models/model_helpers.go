@@ -9,10 +9,11 @@ import (
 )
 
 var ErrorMessages = map[string]string{
-	"nonExistentTeacher" : "The email '%v' does not exist as a teacher",
-	"nonExistentTeachers" : "The email(s) %v do(es) not exist as teacher(s)",
-	"nonExistentStudents" : "The email(s) %v do(es) not exist as student(s)",
-	"nonExistentTeacher&Students": "'%v' does not exist as a teacher and %v do(es) not exist as student(s)",
+	"nonExistentTeacher" : "400: The email '%v' does not exist as a teacher",
+	"nonExistentTeachers" : "400: The email(s) %v do(es) not exist as teacher(s)",
+	"nonExistentStudents" : "400: The email(s) %v do(es) not exist as student(s)",
+	"nonExistentTeacher&Students": "400: '%v' does not exist as a teacher and %v do(es) not exist as student(s)",
+	"studentsAlreadyRegistered": "409: Student(s) %v has/have already been registered with the teacher '%v'",
 }
 
 func checkTeacherExists(teacher string) (bool, error) {
@@ -95,4 +96,23 @@ func checkTeacherStudentsExist(teacher string, students []string) error {
 	}
 
 	return nil
+}
+
+func checkTeacherStudentRelationshipsExist(teacher string, students []string) ([]string, error) {
+	existentStudentTeacherRelationships := []string{}
+	for _, student := range students {
+		// Check if the teacher, student relationship exists
+		var relationshipID string
+		err := DB.QueryRow(context.Background(), "SELECT student FROM teacher_student_relationship WHERE teacher = $1 AND student = $2", teacher, student).Scan(&relationshipID)
+	
+		if err == pgx.ErrNoRows {
+			//Do nothing
+		} else if err != nil {
+			return nil, err
+		} else {
+			existentStudentTeacherRelationships = append(existentStudentTeacherRelationships, fmt.Sprintf("'%v'", student))
+		}
+	}	
+
+	return existentStudentTeacherRelationships, nil	
 }
