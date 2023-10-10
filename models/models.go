@@ -10,6 +10,7 @@ var DB PgxIface
 
 type PgxIface interface {
 	Close(context.Context) error
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
@@ -28,7 +29,7 @@ func RegisterStudents(studentRegistrationData StudentRegistrationData) error {
 	for _, student := range students {
 		rows, err := DB.Query(context.Background(), "INSERT INTO teacher_student_relationship(teacher, student) VALUES ($1, $2)", teacher, student)
 		if err != nil { return err }
-		
+
 		rows.Close()
 	}
 

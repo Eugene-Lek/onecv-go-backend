@@ -4,40 +4,38 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var errorMessages = map[string]string{
 	"nonExistentTeacher" : "The email '%v' does not exist as a teacher.",
 	"nonExistentStudents" : "The email(s) '%v' do(es) not exist as student(s).",
-	"nonExistentTeacher&Students": "'%v' does not exist as a teacher and '%v' do(es) not exist as student(s)",
+	"nonExistentTeacher&Students": "'%v' does not exist as a teacher and %v do(es) not exist as student(s)",
 }
 
 func checkTeacherExists(teacher string) (bool, error) {
-	rows, err := DB.Query(context.Background(), "SELECT * FROM teacher WHERE email = $1", teacher)
-	if err != nil {
+	var email string
+	err := DB.QueryRow(context.Background(), "SELECT email FROM teacher WHERE email = $1", teacher).Scan(&email)
+
+	if err == pgx.ErrNoRows {
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
-	rowCount := 0
-	for rows.Next() {rowCount++}
-	if teacherExists := rowCount > 0; !teacherExists {
-		return false, nil //fmt.Errorf(errorMessages["unregisteredTeacher"], teacher)
-	}
-	defer rows.Close()	
 
 	return true, nil
 }
 
 func checkStudentExists(student string) (bool, error) {
-	rows, err := DB.Query(context.Background(), "SELECT * FROM student WHERE email = $1", student)
-	if err != nil {
+	var email string
+	err := DB.QueryRow(context.Background(), "SELECT email FROM student WHERE email = $1", student).Scan(&email)
+
+	if err == pgx.ErrNoRows {
+		return false, nil
+	} else if err != nil {
 		return false, err
-	}
-	rowCount := 0
-	for rows.Next() {rowCount++}
-	if studentExists := rowCount > 0; !studentExists {
-		return false, nil //fmt.Errorf(errorMessages["unregisteredStudent"], student)
-	}
-	defer rows.Close()	
+	}	
 
 	return true, nil
 }
@@ -51,7 +49,7 @@ func checkStudentsExist(students []string) ([]string, error) {
 		if err != nil { return []string{}, err }
 
 		if !studentExists {
-			nonExistentStudents = append(nonExistentStudents, student)
+			nonExistentStudents = append(nonExistentStudents, fmt.Sprintf("'%v'", student))
 		}
 	}	
 
