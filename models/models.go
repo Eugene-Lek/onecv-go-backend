@@ -2,37 +2,37 @@ package models
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 )
 
-var DB *pgx.Conn
+var DB PgxIface
+
+type PgxIface interface {
+	Close(context.Context) error
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
 
 type StudentRegistrationData struct {
-	Teacher  string   `json:"teacher"`
-	Students []string `json:"students"`
+	Teacher  string   `json:"teacher" binding:"required"`
+	Students []string `json:"students" binding:"required"`
 }
 
 func RegisterStudents(studentRegistrationData StudentRegistrationData) error {
-	var err error
 	teacher := studentRegistrationData.Teacher
 
-	_, err = DB.Query(context.Background(), "SELECT * FROM teacher WHERE email = $1", teacher)
-	if err != nil {
-		return errors.New(fmt.Sprintf(errorMessages["unregisteredTeacher"], teacher))
-	}
-
+	// Check if teacher's email has been registered
+	err := checkTeacherExists(teacher)
+	if err != nil { return err }
+	
 	for _, student := range studentRegistrationData.Students {
-		_, err = DB.Query(context.Background(), "SELECT * FROM student WHERE email = $1", student)
-		if err != nil {
-			return errors.New(fmt.Sprintf(errorMessages["unregisteredStudent"], student))
-		}
-		_, err = DB.Query(context.Background(), "INSERT INTO teacher_student_relationship(teacher, student) VALUES ($1, $2)", teacher, student)
-		if err != nil {
-			return err
-		}
+		// Check if student's email has been registered
+		err := checkStudentExists(student)
+		if err != nil { return err }
+
+		rows, err := DB.Query(context.Background(), "INSERT INTO teacher_student_relationship(teacher, student) VALUES ($1, $2)", teacher, student)
+		if err != nil { return err }
+		rows.Close()
 	}
 
 	return nil
