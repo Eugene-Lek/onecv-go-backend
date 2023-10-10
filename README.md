@@ -13,8 +13,8 @@ $ go get .
    * Add your local database URL to the .env created in step 1. 
    (Format: postgresql://postgres:[password]@localhost:5432/onecvtest)
 
-5. Run `init_database.sql` via the Query Tool to set up the database tables and relations.
+4. Run `init_database.sql` via the Query Tool to set up the database tables and relations.
 
-6. Then `go run .` to run
+5. Then `go run .` to run.
 
-7. `.....` to run the unit tests 
+6. Run `go test` to run the unit tests 
