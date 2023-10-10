@@ -8,9 +8,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var errorMessages = map[string]string{
-	"nonExistentTeacher" : "The email '%v' does not exist as a teacher.",
-	"nonExistentStudents" : "The email(s) '%v' do(es) not exist as student(s).",
+var ErrorMessages = map[string]string{
+	"nonExistentTeacher" : "The email '%v' does not exist as a teacher",
+	"nonExistentStudents" : "The email(s) %v do(es) not exist as student(s)",
 	"nonExistentTeacher&Students": "'%v' does not exist as a teacher and %v do(es) not exist as student(s)",
 }
 
@@ -66,15 +66,15 @@ func checkTeacherStudentsExist(teacher string, students []string) error {
 	if err != nil { return err }
 
 	if !teacherExists && len(nonExistentStudents) > 0 {
-		return fmt.Errorf(errorMessages["nonExistentTeacher&Students"], teacher, strings.Join(nonExistentStudents, ", "))
+		return fmt.Errorf(ErrorMessages["nonExistentTeacher&Students"], teacher, strings.Join(nonExistentStudents, ", "))
 	}
 
 	if !teacherExists {
-		return fmt.Errorf(errorMessages["nonExistentTeacher"], teacher)
+		return fmt.Errorf(ErrorMessages["nonExistentTeacher"], teacher)
 	}
 
 	if len(nonExistentStudents) > 0 {
-		return fmt.Errorf(errorMessages["nonExistentStudents"], strings.Join(nonExistentStudents, ", "))
+		return fmt.Errorf(ErrorMessages["nonExistentStudents"], strings.Join(nonExistentStudents, ", "))
 	}
 
 	return nil
