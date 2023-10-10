@@ -21,6 +21,7 @@ type registerStudentsTestCase struct {
 	testCaseDesc string
 	body  models.StudentRegistrationData
 	emailsExist models.StudentRegistrationData
+	studentsRegistered []bool
 	wantCode int
 	wantMessage string
 }
@@ -49,7 +50,19 @@ func OneRegisterStudentTest(t *testing.T, router *gin.Engine, testCase registerS
 
 	allEmailsExistence := append(testCase.emailsExist.Students, testCase.emailsExist.Teacher)
 	for _, emailExist := range allEmailsExistence {
-		if emailExist == "false" { noRequestErrors = false }
+		if emailExist == "false" { 
+			noRequestErrors = false 
+		}
+	}
+
+	if noRequestErrors { // If no errors up to this point, check if teacher student relationships exist
+		addCheckTeacherStudentRelationshipExistsQueries(mock, teacher, students, testCase.studentsRegistered)		
+	}
+
+	for _, studentRegistered := range testCase.studentsRegistered {
+		if studentRegistered {
+			noRequestErrors = false
+		}
 	}
 
 	if noRequestErrors {
@@ -93,6 +106,7 @@ func TestRegisterStudents(t *testing.T) {
 			"All valid and existent emails", 
 			models.StudentRegistrationData{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "true", Students: []string{"true", "true"}},
+			[]bool{false, false},
 			204,
 			"",
 		},
@@ -100,39 +114,58 @@ func TestRegisterStudents(t *testing.T) {
 			"One or more invalid emails", 
 			models.StudentRegistrationData{Teacher: "tomgmail.com", Students: []string{"jerry@gmailcom", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "true", Students: []string{"true", "true"}},
+			[]bool{false, false},
 			400,
-			fmt.Sprintf(errorMessages["invalidEmail"], strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")),
+			strings.Join(strings.Split(fmt.Sprintf(errorMessages["invalidEmail"], strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")), ": ")[1:], ": "),
 		},
         {
 			"One or more invalid emails & non-existent email(s)", 
 			models.StudentRegistrationData{Teacher: "tomgmail.com", Students: []string{"jerry@gmailcom", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "false", Students: []string{"true", "true"}},
+			[]bool{false, false},
 			400,
-			fmt.Sprintf(errorMessages["invalidEmail"], strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")),
-		},		
+			strings.Join(strings.Split(fmt.Sprintf(errorMessages["invalidEmail"], strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")), ": ")[1:], ": "),
+		},	
+        {
+			"Missing email(s)", 
+			models.StudentRegistrationData{Teacher: " ", Students: []string{" ", "spike@gmail.com"}},
+			models.StudentRegistrationData{Teacher: "false", Students: []string{"false", "true"}},
+			[]bool{false, false},
+			400,
+			strings.Join(strings.Split(fmt.Sprintf(errorMessages["invalidEmail"], strings.Join([]string{" ", " "}, ", ")), ": ")[1:], ": "),
+		},			
 		{
 			"Non existent teacher email", 
 			models.StudentRegistrationData{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "false", Students: []string{"true", "true"}},
+			[]bool{false, false},
 			400,
-			fmt.Sprintf(models.ErrorMessages["nonExistentTeacher"], "tom@gmail.com"),
+			strings.Join(strings.Split(fmt.Sprintf(models.ErrorMessages["nonExistentTeacher"], "tom@gmail.com"), ": ")[1:], ": "),
 		},
 		{
 			"Non existent student emails", 
 			models.StudentRegistrationData{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "true", Students: []string{"false", "false"}},
+			[]bool{false, false},
 			400,
-			fmt.Sprintf(models.ErrorMessages["nonExistentStudents"], strings.Join([]string{"'jerry@gmail.com'", "'spike@gmail.com'"}, ", ")),
+			strings.Join(strings.Split(fmt.Sprintf(models.ErrorMessages["nonExistentStudents"], strings.Join([]string{"'jerry@gmail.com'", "'spike@gmail.com'"}, ", ")), ": ")[1:], ": "),
 		},	
 		{
 			"Non existent student & teacher emails", 
 			models.StudentRegistrationData{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData{Teacher: "false", Students: []string{"false", "true"}},
+			[]bool{false, false},
 			400,
-			fmt.Sprintf(models.ErrorMessages["nonExistentTeacher&Students"], "tom@gmail.com", strings.Join([]string{"'jerry@gmail.com'"}, ", ")),
+			strings.Join(strings.Split(fmt.Sprintf(models.ErrorMessages["nonExistentTeacher&Students"], "tom@gmail.com", strings.Join([]string{"'jerry@gmail.com'"}, ", ")), ": ")[1:], ": "),
 		},	
-
-		
+        {
+			"Student(s) already registered with Teacher", 
+			models.StudentRegistrationData{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
+			models.StudentRegistrationData{Teacher: "true", Students: []string{"true", "true"}},
+			[]bool{true, false},
+			409,
+			strings.Join(strings.Split(fmt.Sprintf(models.ErrorMessages["studentsAlreadyRegistered"], strings.Join([]string{"'jerry@gmail.com'"}, ", "), "tom@gmail.com"), ": ")[1:], ": "),
+		},			
     }
 
 	router := router()
