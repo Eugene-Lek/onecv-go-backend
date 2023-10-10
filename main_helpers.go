@@ -13,6 +13,18 @@ var errorMessages = map[string]string{
 	"invalidDataType" : "The JSON sent does not have the correct structure and/or types",
 }
 
+func removeDuplicateStr(strSlice []string) []string {
+    allKeys := make(map[string]bool)
+    list := []string{}
+    for _, item := range strSlice {
+        if _, value := allKeys[item]; !value {
+            allKeys[item] = true
+            list = append(list, item)
+        }
+    }
+    return list
+}
+
 func validateEmail (email string) bool {
 	return strings.HasSuffix(email, "@gmail.com")
 }
