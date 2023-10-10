@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"strconv"
 )
 
 type errorMessage struct {
@@ -9,8 +10,8 @@ type errorMessage struct {
 }
 
 var errorMessages = map[string]string{
-	"invalidEmail" : "You have provided one or more invalid emails: %v ",
-	"invalidDataType" : "The JSON sent does not have the correct structure and/or types",
+	"invalidEmail" : "400: You have provided one or more invalid emails: %v ",
+	"invalidDataType" : "400: The JSON sent does not have the correct structure and/or types",
 }
 
 func removeDuplicateStr(strSlice []string) []string {
@@ -38,4 +39,28 @@ func getInvalidEmails (allEmails []string) []string {
 		}
 	}	
 	return invalidEmails
+}
+
+func getStatusAndMessage(err error) (int, string) {
+	var httpStatus int
+	var message string
+	originalError := err.Error()
+
+	frontSegment, backSegment, delimiterFound := strings.Cut(originalError, ": ")
+	if (!delimiterFound) {
+		httpStatus = 500 // delimiter not found == not custom error == internal server error
+		message = originalError
+	} else {
+		intConversionAttempt, err := strconv.Atoi(frontSegment)
+
+		if (err != nil) {
+			httpStatus = 500 // frontSegment could not be converted to error code == error code malformed or does not exist
+			message = originalError
+		} else {
+			httpStatus = intConversionAttempt
+			message = backSegment
+		}
+	}
+	
+	return httpStatus, message
 }
