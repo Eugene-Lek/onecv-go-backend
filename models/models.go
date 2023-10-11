@@ -6,6 +6,7 @@ import (
 	"strings"
 	"slices"
 	"sort"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -18,12 +19,12 @@ type PgxIface interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
-type StudentRegistrationData struct {
-	Teacher  string   `json:"teacher" binding:"required"`
-	Students []string `json:"students" binding:"required"`
+type StudentRegistrationData[T any] struct {
+	Teacher  T   `json:"teacher" binding:"required"`
+	Students []T `json:"students" binding:"required"`
 }
 
-func RegisterStudents(studentRegistrationData StudentRegistrationData) error {
+func RegisterStudents(studentRegistrationData StudentRegistrationData[string]) error {
 	teacher := studentRegistrationData.Teacher
 	students := studentRegistrationData.Students
 
@@ -33,7 +34,7 @@ func RegisterStudents(studentRegistrationData StudentRegistrationData) error {
 	existentStudentTeacherRelationships, err := checkTeacherStudentRelationshipsExist(teacher, students)
 	if err != nil { return err }
 	if len(existentStudentTeacherRelationships) > 0 {
-		return fmt.Errorf(ErrorMessages["studentsAlreadyRegistered"], strings.Join(existentStudentTeacherRelationships, ", "), teacher)
+		return fmt.Errorf(CustomErrors["studentsAlreadyRegistered"].Message, errors.New("studentsAlreadyRegistered"), strings.Join(existentStudentTeacherRelationships, ", "), teacher)
 	}
 	
 	for _, student := range students {
@@ -51,7 +52,7 @@ func GetCommonStudents(teachers []string) ([]string, error) {
 	if err != nil { return nil, err }
 
 	if len(nonExistentTeachers) > 0 {
-		return nil, fmt.Errorf(ErrorMessages["nonExistentTeachers"], strings.Join(nonExistentTeachers, ", "))
+		return nil, fmt.Errorf(CustomErrors["nonExistentTeachers"].Message, errors.New("nonExistentTeachers"), strings.Join(nonExistentTeachers, ", "))
 	}
 
 	rows, err := DB.Query(context.Background(), `
@@ -72,7 +73,7 @@ func GetCommonStudents(teachers []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		
 		sort.Strings(studentTeachers)
 		sort.Strings(teachers)
 		if slices.Equal(studentTeachers, teachers) {
@@ -83,5 +84,28 @@ func GetCommonStudents(teachers []string) ([]string, error) {
 		return nil, err
 	}
 
+	sort.Strings(commonStudents) // For consistency with unit tests
 	return commonStudents, nil
+}
+
+
+type StudentSuspensionData[T any] struct {
+	Student T `json:"student" binding:"required"`
+}
+
+func SuspendStudent(studentSuspensionData StudentSuspensionData[string]) error {
+	student := studentSuspensionData.Student
+
+	studentExists, err := checkStudentExists(student)
+	if err != nil { return err }
+	if !studentExists {
+		return fmt.Errorf(CustomErrors["nonExistentStudent"].Message, errors.New("nonExistentStudent"), student)
+	}
+
+	rows, err := DB.Query(context.Background(), "UPDATE student SET suspended = true WHERE email = $1", student)
+	if err != nil { return err }
+
+	rows.Close()
+
+	return nil
 }

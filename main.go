@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"log"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -37,15 +38,18 @@ func router() *gin.Engine {
 	router := gin.Default()
 	router.POST("/api/register", registerStudents)
 	router.GET("/api/commonstudents", getCommonStudents)
+	router.POST("/api/suspend", suspendStudent)
 	return router
 }
 
+type registerStudentsSuccessBody struct {}
+
 func registerStudents(c *gin.Context) {
-	var studentRegistrationData models.StudentRegistrationData
+	var studentRegistrationData models.StudentRegistrationData[string]
 	if err := c.BindJSON(&studentRegistrationData); err != nil {
-		err := fmt.Errorf(errorMessages["invalidDataType"])
+		err := fmt.Errorf(customErrors["invalidDataType"].Message, errors.New("invalidDataType"))
 		httpStatus, message := getStatusAndMessage(err)
-		c.IndentedJSON(httpStatus, errorMessage{Message: message})			
+		c.IndentedJSON(httpStatus, errorResponseBody{message})			
 		return
 	}
 
@@ -56,18 +60,18 @@ func registerStudents(c *gin.Context) {
 	invalidEmails := getInvalidEmails(allEmails)
 
 	if len(invalidEmails) > 0 {
-		err := fmt.Errorf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))
+		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
 		httpStatus, message := getStatusAndMessage(err)
-		c.IndentedJSON(httpStatus, errorMessage{Message: message})				
+		c.IndentedJSON(httpStatus, errorResponseBody{message})				
 		return
 	}
 
 	//Register the student
 	err := models.RegisterStudents(studentRegistrationData)
-	fmt.Println(err)
+
 	if err != nil {
 		httpStatus, message := getStatusAndMessage(err)
-		c.IndentedJSON(httpStatus, errorMessage{Message: message})		
+		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})		
 		return
 	}
 
@@ -75,7 +79,7 @@ func registerStudents(c *gin.Context) {
 
 }
 
-type commonStudentsResponse struct {
+type commonStudentsSuccessBody struct {
 	Students []string `json:"students"`
 }
 
@@ -88,7 +92,9 @@ func getCommonStudents(c *gin.Context) {
 
 	invalidEmails := getInvalidEmails(teachers)
 	if len(invalidEmails) > 0 {
-		c.IndentedJSON(http.StatusBadRequest, errorMessage{Message: fmt.Sprintf(errorMessages["invalidEmail"], strings.Join(invalidEmails, ", "))})
+		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})				
 		return
 	}
 
@@ -96,10 +102,42 @@ func getCommonStudents(c *gin.Context) {
 	commonStudents, err := models.GetCommonStudents(teachers)
 	if err != nil {
 		httpStatus, message := getStatusAndMessage(err)
-		c.IndentedJSON(httpStatus, errorMessage{Message: message})
+		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, commonStudentsResponse{commonStudents})
+	c.IndentedJSON(http.StatusOK, commonStudentsSuccessBody{commonStudents})
 
+}
+
+type suspendStudentSuccessBody struct {}
+
+func suspendStudent(c *gin.Context) {
+	var studentSuspensionData models.StudentSuspensionData[string]
+	if err := c.BindJSON(&studentSuspensionData); err != nil {
+		err := fmt.Errorf(customErrors["invalidDataType"].Message, errors.New("invalidDataType"))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{message})			
+		return
+	}
+
+	//Parameter validation (check for @gmail.com)
+	invalidEmails := getInvalidEmails([]string{studentSuspensionData.Student})
+
+	if len(invalidEmails) > 0 {
+		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{message})				
+		return
+	}
+
+	//Register the student
+	err := models.SuspendStudent(studentSuspensionData)
+	if err != nil {
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})		
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

@@ -2,61 +2,93 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 	"regexp"
 
-	"github.com/gin-gonic/gin"
 	"github.com/pashagolub/pgxmock/v3"
+	"github.com/google/go-cmp/cmp"
 )
 
-type Response struct {
-	Status int `json:"status" binding:"required"`
-	Message string `json:"message"`
+func checkQueryExpectations(mock pgxmock.PgxConnIface, t *testing.T) {
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}	
 }
 
-type ResponseBody struct {
-	Message string `json:"message"`
-}
+func getResponseBody[responseBodyType any](recorder *httptest.ResponseRecorder, t *testing.T) responseBodyType {
+	var responseBody responseBodyType
 
-func getResponse(request *http.Request, router *gin.Engine, recorder *httptest.ResponseRecorder, t *testing.T) Response {
-
-	router.ServeHTTP(recorder, request)
-
-	var responseBody ResponseBody
 	body := recorder.Body.String()
+	if body == "" {
+		return responseBody
+	}
 	
+	err := json.Unmarshal([]byte(body), &responseBody)
+	if err != nil {
+		t.Fatalf("parsing json response: %v", err)
+	}
+
+	return responseBody
+}
+
+type testCaseStruct struct {
+	wantCode int
+	wantResponseBody any
+}
+
+func checkStatusAndResponse[registerStudentsSuccessBody any](recorder *httptest.ResponseRecorder, t *testing.T, testCase testCaseStruct) {
+	if recorder.Code != testCase.wantCode {
+		t.Errorf("wrong response code:\nwant: %v\n got: %v", testCase.wantCode, recorder.Code)
+	}
+
 	if recorder.Code < 300 {
-		responseBody = ResponseBody{""}
-	} else {
-		if err := json.Unmarshal([]byte(body), &responseBody); err != nil {
-			t.Fatalf("parsing json response: %v", err)
+		responseBody := getResponseBody[registerStudentsSuccessBody](recorder, t)
+		if !cmp.Equal(responseBody, testCase.wantResponseBody) {
+			t.Errorf("wrong response body:\nwant: %v\n got: %v", testCase.wantResponseBody, responseBody)
 		}
-	}
-
-	return Response {
-		Status: recorder.Code,
-		Message: responseBody.Message,
-	}
+		
+	} else {
+		responseBody := getResponseBody[errorResponseBody](recorder, t)
+		if !cmp.Equal(responseBody, testCase.wantResponseBody) {
+			t.Errorf("wrong response body:\nwant: %s\n got: %s", testCase.wantResponseBody, responseBody)
+		}
+	}	
 }
 
+func addCheckStudentExistsQuery(mock pgxmock.PgxConnIface, student string, studentExists bool) {
+	expectedStudentRow := pgxmock.NewRows([]string{"email"})
+	if (studentExists) {expectedStudentRow.AddRow(student)}
 
-func addCheckTeacherExistsQuery(mock pgxmock.PgxConnIface, teacher string, teacherExists string) {
-	expectedTeacherRow := pgxmock.NewRows([]string{"email"})
-	if (teacherExists == "true") {expectedTeacherRow.AddRow(teacher)}
-
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM teacher WHERE email = $1")).WithArgs(teacher).WillReturnRows(expectedTeacherRow)	
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM student WHERE email = $1")).WithArgs(student).WillReturnRows(expectedStudentRow)	
 }
 
-func addCheckStudentExistsQueries(mock pgxmock.PgxConnIface, students []string, studentExistences []string) {
+func addCheckStudentExistsQueries(mock pgxmock.PgxConnIface, students []string, studentExistences []bool) {
 	for index, student := range students {
 		expectedStudentRow := pgxmock.NewRows([]string{"email"})
-		if (studentExistences[index] == "true") {
+		if (studentExistences[index]) {
 			expectedStudentRow.AddRow(student)
 		}
 		
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM student WHERE email = $1")).WithArgs(student).WillReturnRows(expectedStudentRow)
+	}	
+}
+
+func addCheckTeacherExistsQuery(mock pgxmock.PgxConnIface, teacher string, teacherExists bool) {
+	expectedTeacherRow := pgxmock.NewRows([]string{"email"})
+	if (teacherExists) {expectedTeacherRow.AddRow(teacher)}
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM teacher WHERE email = $1")).WithArgs(teacher).WillReturnRows(expectedTeacherRow)	
+}
+
+func addCheckTeachersExistsQueries(mock pgxmock.PgxConnIface, teachers []string, teacherExistences []bool) {
+	for index, teacher := range teachers {
+		expectedTeacherRow := pgxmock.NewRows([]string{"email"})
+		if (teacherExistences[index]) {
+			expectedTeacherRow.AddRow(teacher)
+		}
+		
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT email FROM teacher WHERE email = $1")).WithArgs(teacher).WillReturnRows(expectedTeacherRow)
 	}	
 }
 

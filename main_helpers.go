@@ -1,17 +1,23 @@
 package main
 
 import (
+	"errors"
+	"onecv-go-backend/models"
 	"strings"
-	"strconv"
 )
 
-type errorMessage struct {
-	Message string `json:"message" binding:"required"`
+type errorResponseBody struct {
+	Message string `json:"message"`
 }
 
-var errorMessages = map[string]string{
-	"invalidEmail" : "400: You have provided one or more invalid emails: %v ",
-	"invalidDataType" : "400: The JSON sent does not have the correct structure and/or types",
+type customError struct {
+	Message string
+	Status int
+}
+
+var customErrors = map[string]customError{
+	"invalidEmail" : {"%w: You have provided one or more invalid emails: %s ", 400},
+	"invalidDataType" : {"%w: The JSON sent does not have the correct structure and/or types", 400},
 }
 
 func removeDuplicateStr(strSlice []string) []string {
@@ -43,24 +49,23 @@ func getInvalidEmails (allEmails []string) []string {
 
 func getStatusAndMessage(err error) (int, string) {
 	var httpStatus int
-	var message string
-	originalError := err.Error()
+	message := err.Error()
 
-	frontSegment, backSegment, delimiterFound := strings.Cut(originalError, ": ")
-	if (!delimiterFound) {
-		httpStatus = 500 // delimiter not found == not custom error == internal server error
-		message = originalError
-	} else {
-		intConversionAttempt, err := strconv.Atoi(frontSegment)
-
-		if (err != nil) {
-			httpStatus = 500 // frontSegment could not be converted to error code == error code malformed or does not exist
-			message = originalError
-		} else {
-			httpStatus = intConversionAttempt
-			message = backSegment
-		}
+	errorCode := errors.Unwrap(err)
+	if errorCode == nil {
+		httpStatus = 500
+		return httpStatus, message
 	}
-	
+
+	customErrorMain, errorCodeMainExists := customErrors[errorCode.Error()]
+	customErrorModels, errorCodeModelsExists := models.CustomErrors[errorCode.Error()]
+
+	if !errorCodeMainExists && !errorCodeModelsExists {
+		httpStatus = 500
+	} else if errorCodeMainExists {
+		httpStatus = customErrorMain.Status	
+	} else {
+		httpStatus = customErrorModels.Status	
+	}
 	return httpStatus, message
 }

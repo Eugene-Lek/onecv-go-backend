@@ -4,16 +4,23 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-var ErrorMessages = map[string]string{
-	"nonExistentTeacher" : "400: The email '%v' does not exist as a teacher",
-	"nonExistentTeachers" : "400: The email(s) %v do(es) not exist as teacher(s)",
-	"nonExistentStudents" : "400: The email(s) %v do(es) not exist as student(s)",
-	"nonExistentTeacher&Students": "400: '%v' does not exist as a teacher and %v do(es) not exist as student(s)",
-	"studentsAlreadyRegistered": "409: Student(s) %v has/have already been registered with the teacher '%v'",
+type customError struct {
+	Message string
+	Status int
+}
+
+var CustomErrors = map[string]customError{
+	"nonExistentTeacher" : {"%w: The email '%v' does not exist as a teacher", 400},
+	"nonExistentTeachers" : {"%w: The email(s) %v do(es) not exist as teacher(s)", 400},
+	"nonExistentStudent" : {"%w: The email '%v' does not exist as a student", 400},
+	"nonExistentStudents" : {"%w: The email(s) %v do(es) not exist as student(s)", 400},
+	"nonExistentTeacher&Students": {"%w: '%v' does not exist as a teacher and %v do(es) not exist as student(s)", 400},
+	"studentsAlreadyRegistered": {"%w: Student(s) %v has/have already been registered with the teacher '%v'", 409},
 }
 
 func checkTeacherExists(teacher string) (bool, error) {
@@ -84,15 +91,15 @@ func checkTeacherStudentsExist(teacher string, students []string) error {
 	if err != nil { return err }
 
 	if !teacherExists && len(nonExistentStudents) > 0 {
-		return fmt.Errorf(ErrorMessages["nonExistentTeacher&Students"], teacher, strings.Join(nonExistentStudents, ", "))
+		return fmt.Errorf(CustomErrors["nonExistentTeacher&Students"].Message, errors.New("nonExistentTeacher&Students"), teacher, strings.Join(nonExistentStudents, ", "))
 	}
 
 	if !teacherExists {
-		return fmt.Errorf(ErrorMessages["nonExistentTeacher"], teacher)
+		return fmt.Errorf(CustomErrors["nonExistentTeacher"].Message, errors.New("nonExistentTeacher"), teacher)
 	}
 
 	if len(nonExistentStudents) > 0 {
-		return fmt.Errorf(ErrorMessages["nonExistentStudents"], strings.Join(nonExistentStudents, ", "))
+		return fmt.Errorf(CustomErrors["nonExistentStudents"].Message, errors.New("nonExistentStudents"), strings.Join(nonExistentStudents, ", "))
 	}
 
 	return nil
