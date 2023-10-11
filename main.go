@@ -39,6 +39,7 @@ func router() *gin.Engine {
 	router.POST("/api/register", registerStudents)
 	router.GET("/api/commonstudents", getCommonStudents)
 	router.POST("/api/suspend", suspendStudent)
+	router.POST("/api/retrievefornotifications", retrieveForNotifications)
 	return router
 }
 
@@ -59,7 +60,7 @@ func registerStudents(c *gin.Context) {
 	allEmails := append(studentRegistrationData.Students, studentRegistrationData.Teacher)
 	invalidEmails := getInvalidEmails(allEmails)
 
-	if len(invalidEmails) > 0 {
+	if haveInvalidEmails := len(invalidEmails) > 0; haveInvalidEmails {
 		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
 		httpStatus, message := getStatusAndMessage(err)
 		c.IndentedJSON(httpStatus, errorResponseBody{message})				
@@ -91,7 +92,7 @@ func getCommonStudents(c *gin.Context) {
 	teachers = removeDuplicateStr(teachers)
 
 	invalidEmails := getInvalidEmails(teachers)
-	if len(invalidEmails) > 0 {
+	if haveInvalidEmails := len(invalidEmails) > 0; haveInvalidEmails {
 		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
 		httpStatus, message := getStatusAndMessage(err)
 		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})				
@@ -124,7 +125,7 @@ func suspendStudent(c *gin.Context) {
 	//Parameter validation (check for @gmail.com)
 	invalidEmails := getInvalidEmails([]string{studentSuspensionData.Student})
 
-	if len(invalidEmails) > 0 {
+	if haveInvalidEmails := len(invalidEmails) > 0; haveInvalidEmails {
 		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
 		httpStatus, message := getStatusAndMessage(err)
 		c.IndentedJSON(httpStatus, errorResponseBody{message})				
@@ -140,4 +141,60 @@ func suspendStudent(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+type retrieveForNotificationsSuccessBody struct {
+	Recipients []string `json:"recipients"`
+}
+
+func retrieveForNotifications(c *gin.Context) {
+	var retrieveForNotificationsData models.RetrieveForNotificationsData
+
+	if err := c.BindJSON(&retrieveForNotificationsData); err != nil {
+		err := fmt.Errorf(customErrors["invalidDataType"].Message, errors.New("invalidDataType"))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{message})			
+		return
+	}
+
+	teacher := retrieveForNotificationsData.Teacher
+	notification := retrieveForNotificationsData.Notification
+	notificationWords := strings.Split(notification, " ")
+
+	students := []string{}
+	for _, word := range notificationWords {
+		if strings.HasPrefix(word, "@") {
+			students = append(students, word[1:])
+		}
+	}
+
+	//Parameter validation (remove duplicates, check for @gmail.com))
+	students = removeDuplicateStr(students)
+
+	allEmails := append(students, teacher)
+	invalidEmails := getInvalidEmails(allEmails)
+
+	if haveInvalidEmails := len(invalidEmails) > 0; haveInvalidEmails {
+		err := fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join(invalidEmails, ", "))
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{message})				
+		return
+	}
+
+	//Register the student
+	retrieveForNotificationsProcessedData := models.RetrieveForNotificationsProcessedData[string] {
+		Teacher: teacher,
+		Students: students,
+	}
+
+	recipients, err := models.RetrieveForNotifications(retrieveForNotificationsProcessedData)
+
+	if err != nil {
+		httpStatus, message := getStatusAndMessage(err)
+		c.IndentedJSON(httpStatus, errorResponseBody{Message: message})		
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, retrieveForNotificationsSuccessBody{recipients})
+
 }

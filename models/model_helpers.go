@@ -123,3 +123,26 @@ func checkTeacherStudentRelationshipsExist(teacher string, students []string) ([
 
 	return existentStudentTeacherRelationships, nil	
 }
+
+func checkStudentSuspended(student string) (bool, error) {
+	var suspended bool
+	err := DB.QueryRow(context.Background(), "SELECT suspended FROM student WHERE email = $1", student).Scan(&suspended)
+
+	if err != nil {
+		return true, err
+	}	
+
+	return suspended, nil
+}
+
+func removeDuplicateStr(strSlice []string) []string {
+    allKeys := make(map[string]bool)
+    list := []string{}
+    for _, item := range strSlice {
+        if _, value := allKeys[item]; !value {
+            allKeys[item] = true
+            list = append(list, item)
+        }
+    }
+    return list
+}

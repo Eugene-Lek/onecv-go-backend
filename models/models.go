@@ -109,3 +109,48 @@ func SuspendStudent(studentSuspensionData StudentSuspensionData[string]) error {
 
 	return nil
 }
+
+type RetrieveForNotificationsData struct {
+	Teacher  string   `json:"teacher" binding:"required"`
+	Notification string `json:"notification" binding:"required"`
+}
+
+type RetrieveForNotificationsProcessedData[T any] struct {
+	Teacher  T   `json:"teacher" binding:"required"`
+	Students []T `json:"students" binding:"required"`
+}
+
+func RetrieveForNotifications(retrieveForNotificationsProcessedData RetrieveForNotificationsProcessedData[string]) ([]string, error) {
+	teacher := retrieveForNotificationsProcessedData.Teacher
+	students := retrieveForNotificationsProcessedData.Students
+
+	err := checkTeacherStudentsExist(teacher, students)
+	if err != nil { return nil, err }
+
+	var registeredStudents []string
+	err = DB.QueryRow(context.Background(), `
+		SELECT array_agg(DISTINCT student) AS students
+		FROM teacher_student_relationship
+		WHERE teacher = $1
+		GROUP BY teacher
+	`, teacher).Scan(&registeredStudents)
+	if err != nil {
+		return nil, err
+	}
+
+	candidateRecipients := append(students, registeredStudents...)
+	
+	recipients := []string{}
+	for _, candidate := range candidateRecipients {
+		suspended, err := checkStudentSuspended(candidate)
+		if err != nil { return nil, err }
+
+		if !suspended {
+			recipients = append(recipients, candidate)
+		}
+	}
+	recipients = removeDuplicateStr(recipients)
+	sort.Strings(recipients)
+
+	return recipients, nil
+}
