@@ -12,14 +12,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/spf13/viper"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	viper.SetConfigName("app")
-	viper.AddConfigPath(".")  	
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+	err := godotenv.Load(".env")
+	if err != nil {
+		if err.Error() == "open .env: The system cannot find the file specified." {
 			// Config file not found, ignore because this means we are in the production environment
 		} else {
 			log.Fatalf("Some error occured. Err: %s", err)
@@ -35,7 +34,7 @@ func main() {
 	defer models.DB.Close(context.Background())
 
 	router := router()
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }
 
 // Need a router factory so that the same router can be assessed by test scripts
