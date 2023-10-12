@@ -12,15 +12,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Some error occured. Err: %s", err)
+	viper.SetConfigName("app")
+	viper.AddConfigPath(".")  	
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found, ignore because this means we are in the production environment
+		} else {
+			log.Fatalf("Some error occured. Err: %s", err)
+		}
 	}
-
+	
 	var dbConnectionError error
 	models.DB, dbConnectionError = pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if dbConnectionError != nil {
