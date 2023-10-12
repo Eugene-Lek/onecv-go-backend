@@ -1,6 +1,6 @@
 module onecv-go-backend
 
-go 1.21.3
+go 1.21.1
 
 require (
 	github.com/gin-gonic/gin v1.9.1
