@@ -3,7 +3,8 @@ package main
 import (
 	"errors"
 	"onecv-go-backend/models"
-	"strings"
+	"net/mail"
+	"fmt"
 )
 
 type errorResponseBody struct {
@@ -33,7 +34,8 @@ func removeDuplicateStr(strSlice []string) []string {
 }
 
 func validateEmail (email string) bool {
-	return strings.HasSuffix(email, "@gmail.com")
+    _, err := mail.ParseAddress(email)
+    return err == nil
 }
 
 func getInvalidEmails (allEmails []string) []string {
@@ -41,7 +43,7 @@ func getInvalidEmails (allEmails []string) []string {
 	invalidEmails := []string{}
 	for _, email := range allEmails {
 		if (!validateEmail(email)) {
-			invalidEmails = append(invalidEmails, email)
+			invalidEmails = append(invalidEmails, fmt.Sprintf("'%s'", email))
 		}
 	}	
 	return invalidEmails

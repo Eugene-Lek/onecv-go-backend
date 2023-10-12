@@ -102,3 +102,10 @@ func addCheckTeacherStudentRelationshipExistsQueries(mock pgxmock.PgxConnIface, 
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT student FROM teacher_student_relationship WHERE teacher = $1 AND student = $2")).WithArgs(teacher, student).WillReturnRows(expectedRelationshipRow)
 	}		
 }
+
+func addCheckStudentSuspendedQuery(mock pgxmock.PgxConnIface, student string, studentSuspended bool) {
+	expectedStudentRow := pgxmock.NewRows([]string{"studentSuspended"})
+	expectedStudentRow.AddRow(studentSuspended)
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT suspended FROM student WHERE email = $1")).WithArgs(student).WillReturnRows(expectedStudentRow)	
+}

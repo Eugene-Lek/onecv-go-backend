@@ -106,7 +106,23 @@ func OneRegisterStudentTest(t *testing.T, router *gin.Engine, testCase registerS
 func TestRegisterStudents(t *testing.T) {
 	testCases := []registerStudentsTestCase{
         {
-			"All valid and existent emails", 
+			"All valid and existent emails, no students", 
+			models.StudentRegistrationData[string]{Teacher: "tom@gmail.com", Students: []string{}},
+			models.StudentRegistrationData[bool]{Teacher: true, Students: []bool{true, true}},
+			[]bool{false, false},
+			204,
+			registerStudentsSuccessBody{},
+		},		
+        {
+			"All valid and existent emails, 1 student", 
+			models.StudentRegistrationData[string]{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com"}},
+			models.StudentRegistrationData[bool]{Teacher: true, Students: []bool{true, true}},
+			[]bool{false, false},
+			204,
+			registerStudentsSuccessBody{},
+		},		
+        {
+			"All valid and existent emails, 2 students", 
 			models.StudentRegistrationData[string]{Teacher: "tom@gmail.com", Students: []string{"jerry@gmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData[bool]{Teacher: true, Students: []bool{true, true}},
 			[]bool{false, false},
@@ -123,19 +139,19 @@ func TestRegisterStudents(t *testing.T) {
 		},		
         {
 			"One or more invalid emails", 
-			models.StudentRegistrationData[string]{Teacher: "tomgmail.com", Students: []string{"jerry@gmailcom", "spike@gmail.com"}},
+			models.StudentRegistrationData[string]{Teacher: "tomgmail.com", Students: []string{"jerrygmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData[bool]{Teacher: true, Students: []bool{true, true}},
 			[]bool{false, false},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'", "'tomgmail.com'"}, ", ")).Error() },
 		},
         {
 			"One or more invalid emails & non-existent email(s)", 
-			models.StudentRegistrationData[string]{Teacher: "tomgmail.com", Students: []string{"jerry@gmailcom", "spike@gmail.com"}},
+			models.StudentRegistrationData[string]{Teacher: "tomgmail.com", Students: []string{"jerrygmail.com", "spike@gmail.com"}},
 			models.StudentRegistrationData[bool]{Teacher: false, Students: []bool{true, true}},
 			[]bool{false, false},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"jerry@gmailcom", "tomgmail.com"}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'", "'tomgmail.com'"}, ", ")).Error() },
 		},	
         {
 			"Missing email(s)", 
@@ -143,7 +159,7 @@ func TestRegisterStudents(t *testing.T) {
 			models.StudentRegistrationData[bool]{Teacher: false, Students: []bool{false, true}},
 			[]bool{false, false},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{" ", " "}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"' '", "' '"}, ", ")).Error() },
 		},			
 		{
 			"Non existent teacher email", 
@@ -293,7 +309,7 @@ func TestCommonStudents(t *testing.T) {
 				"spike@gmail.com": {"tom@gmail.com"},
 			},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"tomgmail.com"}, ", ")).Error() },		
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'tomgmail.com'"}, ", ")).Error() },		
 		},
         {
 			"One or more invalid emails & non-existent email(s)",
@@ -304,7 +320,7 @@ func TestCommonStudents(t *testing.T) {
 				"spike@gmail.com": {"tom@gmail.com"},
 			},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"tomgmail.com"}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'tomgmail.com'"}, ", ")).Error() },
 		},		
 		{
 			"Non existent teacher(s) email", 
@@ -400,24 +416,24 @@ func TestSuspendStudent(t *testing.T) {
 		},		
         {
 			"Invalid student email", 
-			models.StudentSuspensionData[string]{Student: "jerry@gmailcom"},
+			models.StudentSuspensionData[string]{Student: "jerrygmail.com"},
 			models.StudentSuspensionData[bool]{Student: true},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"jerry@gmailcom"}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'"}, ", ")).Error() },
 		},
         {
 			"Invalid and non-existent student email", 
-			models.StudentSuspensionData[string]{Student: "jerry@gail.com"},
+			models.StudentSuspensionData[string]{Student: "jerrygmail.com"},
 			models.StudentSuspensionData[bool]{Student: false},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"jerry@gail.com"}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'"}, ", ")).Error() },
 		},	
         {
 			"Missing email(s)", 
 			models.StudentSuspensionData[string]{Student: " "},
 			models.StudentSuspensionData[bool]{Student: false},
 			customErrors["invalidEmail"].Status,
-			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{" "}, ", ")).Error() },
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"' '"}, ", ")).Error() },
 		},			
 		{
 			"Non existent student email", 
@@ -431,6 +447,208 @@ func TestSuspendStudent(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.testCaseDesc, func(t *testing.T) {
 			OneSuspendStudentTest(t, testRouter, tc)
+		})
+	}
+}
+
+type retrieveForNotificationsTestCase struct {
+	testCaseDesc string
+	body  models.RetrieveForNotificationsData
+	mentionedStudents []string
+	registeredStudents []string	
+	emailsExist models.RetrieveForNotificationsProcessedData[bool]
+	suspendedStatus []bool
+	wantCode int
+	wantResponseBody any
+}
+
+func OneRetrieveForNotificationsTest(t *testing.T, router *gin.Engine, testCase retrieveForNotificationsTestCase) {
+	// First, add expected queries and results to the mock DB
+	teacher := testCase.body.Teacher
+	mentionedStudents := testCase.mentionedStudents
+	registeredStudents := testCase.registeredStudents
+	suspendedStatus := testCase.suspendedStatus
+
+	mock, err := pgxmock.NewConn()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mock.Close(context.Background())
+
+	noRequestErrors := true
+
+	allEmails := append(mentionedStudents, teacher)
+	invalidEmails := getInvalidEmails(allEmails)
+
+	if haveInvalidEmails := len(invalidEmails) > 0; haveInvalidEmails { 
+		noRequestErrors = false 
+
+	} else {
+		addCheckTeacherExistsQuery(mock, teacher, testCase.emailsExist.Teacher)
+		addCheckStudentExistsQueries(mock, mentionedStudents, testCase.emailsExist.Students)
+
+		allEmailsExistence := append(testCase.emailsExist.Students, testCase.emailsExist.Teacher)
+		for _, emailExist := range allEmailsExistence {
+			if !emailExist { 
+				noRequestErrors = false 
+			}
+		}
+	}
+
+	if noRequestErrors {
+		expectedRow := pgxmock.NewRows([]string{"students"}).AddRow(registeredStudents)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`
+			SELECT array_agg(DISTINCT student) AS students
+			FROM teacher_student_relationship
+			WHERE teacher = $1
+			GROUP BY teacher
+		`)).WithArgs(teacher).WillReturnRows(expectedRow)
+
+		candidateRecipients := append(mentionedStudents, registeredStudents...)
+		for index, student := range candidateRecipients {
+			addCheckStudentSuspendedQuery(mock, student, suspendedStatus[index])
+		}
+	}
+
+	models.DB = mock // assign the mock connection's pointer to models.DB so it can be used by the API endpoints
+
+	// Now, we make the API call
+    out, err := json.Marshal(testCase.body)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest("POST", "/api/retrievefornotifications", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatalf("building request: %v", err)
+	}
+
+	router.ServeHTTP(recorder, request)
+
+	// make sure that all expectations were met
+	checkQueryExpectations(mock, t)
+	checkStatusAndResponse[retrieveForNotificationsSuccessBody](recorder, t, testCaseStruct{testCase.wantCode, testCase.wantResponseBody})
+}
+
+func TestRetrieveForNotifications(t *testing.T) {
+	testCases := []retrieveForNotificationsTestCase{
+        {
+			"All valid and existent emails, no mentioned students", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning!"},
+			[]string{},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{}},
+			[]bool{false, false},
+			200,
+			retrieveForNotificationsSuccessBody{[]string{ "nibbles@gmail.com", "spike@gmail.com"}},
+		},		
+        {
+			"All valid and existent emails, 1 mentioned student", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true}},
+			[]bool{false, false, false},
+			200,
+			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com", "nibbles@gmail.com", "spike@gmail.com"}},
+		},
+        {
+			"All valid and existent emails, 2 mentioned students", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "@tyke@gmail.com Good morning @jerry@gmail.com"},
+			[]string{"tyke@gmail.com", "jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true, true}},
+			[]bool{false, false, false, false},
+			200,
+			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com", "nibbles@gmail.com", "spike@gmail.com", "tyke@gmail.com"}},
+		},		
+        {
+			"Malformed JSON", 
+			models.RetrieveForNotificationsData{Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true}},
+			[]bool{false, false, false},
+			customErrors["invalidDataType"].Status,
+			errorResponseBody{ fmt.Errorf(customErrors["invalidDataType"].Message, errors.New("invalidDataType")).Error() },
+		},		
+        {
+			"One or more invalid emails", 
+			models.RetrieveForNotificationsData{Teacher: "tomgmail.om", Notification: "Good morning @jerrygmail.com"},
+			[]string{"jerrygmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true}},
+			[]bool{false, false, false},
+			customErrors["invalidEmail"].Status,
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'", "'tomgmail.om'"}, ", ")).Error() },
+		},
+        {
+			"Merged mentions", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com@nibbles@gmail.com"},
+			[]string{"jerry@gmail.com@nibbles@gmail.com"},
+			[]string{"spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{false}},
+			[]bool{false, false, false},
+			customErrors["invalidEmail"].Status,
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerry@gmail.com@nibbles@gmail.com'"}, ", ")).Error() },
+		},		
+        {
+			"One or more invalid emails & non-existent email(s)", 
+			models.RetrieveForNotificationsData{Teacher: "tomgmail.com", Notification: "Good morning @jerrygmail.com"},
+			[]string{"jerrygmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{false}},
+			[]bool{false, false, false},
+			customErrors["invalidEmail"].Status,
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"'jerrygmail.com'", "'tomgmail.com'"}, ", ")).Error() },
+		},	
+        {
+			"Missing teacher email", 
+			models.RetrieveForNotificationsData{Teacher: " ", Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true}},
+			[]bool{false, false, false},
+			customErrors["invalidEmail"].Status,
+			errorResponseBody{ fmt.Errorf(customErrors["invalidEmail"].Message, errors.New("invalidEmail"), strings.Join([]string{"' '"}, ", ")).Error() },
+		},			
+		{
+			"Non existent teacher email", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: false, Students: []bool{true}},
+			[]bool{false, false, false},
+			models.CustomErrors["nonExistentTeacher"].Status,
+			errorResponseBody{ fmt.Errorf(models.CustomErrors["nonExistentTeacher"].Message, errors.New("nonExistentTeacher"), "tom@gmail.com").Error() },
+		},
+		{
+			"Non existent student emails", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com @spike@gmail.com"},
+			[]string{"jerry@gmail.com", "spike@gmail.com"},
+			[]string{"nibbles@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{false, false}},
+			[]bool{false, false, false},
+			models.CustomErrors["nonExistentStudents"].Status,
+			errorResponseBody{ fmt.Errorf(models.CustomErrors["nonExistentStudents"].Message, errors.New("nonExistentStudents"), strings.Join([]string{"'jerry@gmail.com'", "'spike@gmail.com'"}, ", ")).Error() },
+		},	
+		{
+			"Non existent student & teacher emails", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: false, Students: []bool{false}},
+			[]bool{false, false, false},
+			models.CustomErrors["nonExistentTeacher&Students"].Status,
+			errorResponseBody{ fmt.Errorf(models.CustomErrors["nonExistentTeacher&Students"].Message, errors.New("nonExistentTeacher&Students"), "tom@gmail.com", strings.Join([]string{"'jerry@gmail.com'"}, ", ")).Error() },
+		},		
+    }
+
+	for _, tc := range testCases {
+		t.Run(tc.testCaseDesc, func(t *testing.T) {
+			OneRetrieveForNotificationsTest(t, testRouter, tc)
 		})
 	}
 }
