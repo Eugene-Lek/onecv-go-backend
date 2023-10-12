@@ -17,4 +17,4 @@ $ go get .
 
 5. Then `go run .` to run.
 
-6. Run `go test` to run the unit tests 
+6. Run `go test` to run the unit tests. 
