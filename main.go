@@ -17,12 +17,8 @@ import (
 
 func main() {
 	err := godotenv.Load(".env")
-	if err != nil {
-		if err.Error() == "open .env: The system cannot find the file specified." {
-			// Config file not found, ignore because this means we are in the production environment
-		} else {
-			log.Fatalf("Some error occured. Err: %s", err)
-		}
+	if err != nil && os.Getenv("GIN_MODE") == "debug" {
+		log.Fatalf("Some error occured. Err: %s", err)
 	}
 	
 	var dbConnectionError error
