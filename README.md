@@ -1,3 +1,24 @@
+## Accessing the publicly accessible hosted API
+API Links:
+* https://eugene-lek-onecv-go.onrender.com/api/register
+* https://eugene-lek-onecv-go.onrender.com/api/commonstudents
+* https://eugene-lek-onecv-go.onrender.com/api/suspend
+* https://eugene-lek-onecv-go.onrender.com/api/retrievefornotifications
+
+**Do note that I have created the following entries in the hosted database, for testing the hosted API.**
+
+Students:
+jerry@gmail.com,
+nibbles@gmail.com,
+spike@gmail.com,
+tyke@gmail.com,
+bo@gmail.com
+
+Teachers:
+tom@gmail.com,
+quacker@gmail.com,
+butch@gmail.com
+
 ## Setting up the development environment
 1. Clone the repository:
 ```
@@ -29,24 +50,3 @@ go run .
 ```
 go test
 ```
-
-## Accessing the publicly accessible hosted API
-API Links:
-* https://eugene-lek-onecv-go.onrender.com/api/register
-* https://eugene-lek-onecv-go.onrender.com/api/commonstudents
-* https://eugene-lek-onecv-go.onrender.com/api/suspend
-* https://eugene-lek-onecv-go.onrender.com/api/retrievefornotifications
-
-**Do note that I have created the following entries in the hosted database, for testing the hosted API.**
-
-Students:
-jerry@gmail.com,
-nibbles@gmail.com,
-spike@gmail.com,
-tyke@gmail.com,
-bo@gmail.com
-
-Teachers:
-tom@gmail.com,
-quacker@gmail.com,
-butch@gmail.com
