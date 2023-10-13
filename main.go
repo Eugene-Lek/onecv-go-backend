@@ -17,7 +17,7 @@ import (
 
 func main() {
 	err := godotenv.Load(".env")
-	if err != nil && os.Getenv("GIN_MODE") == "debug" {
+	if err != nil && os.Getenv("GIN_MODE") == "" {
 		log.Fatalf("Some error occured. Err: %s", err)
 	}
 	
