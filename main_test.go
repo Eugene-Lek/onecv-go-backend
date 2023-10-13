@@ -1,22 +1,23 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"encoding/json"
-	"bytes"
 	"onecv-go-backend/models"
-	"testing"
-	"log"
-	"fmt"
-	"strings"
-	"context"
-	"errors"
 	"regexp"
+	"strings"
+	"testing"
 
-	"github.com/pashagolub/pgxmock/v3"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/pashagolub/pgxmock/v3"
 )
 
 var testRouter *gin.Engine
@@ -496,14 +497,24 @@ func OneRetrieveForNotificationsTest(t *testing.T, router *gin.Engine, testCase 
 	}
 
 	if noRequestErrors {
-		expectedRow := pgxmock.NewRows([]string{"students"}).AddRow(registeredStudents)
+		if noRegisteredStudents := len(registeredStudents) == 0; noRegisteredStudents {
+			mock.ExpectQuery(regexp.QuoteMeta(`
+				SELECT array_agg(DISTINCT student) AS students
+				FROM teacher_student_relationship
+				WHERE teacher = $1
+				GROUP BY teacher
+			`)).WithArgs(teacher).WillReturnError(pgx.ErrNoRows)
 
-		mock.ExpectQuery(regexp.QuoteMeta(`
-			SELECT array_agg(DISTINCT student) AS students
-			FROM teacher_student_relationship
-			WHERE teacher = $1
-			GROUP BY teacher
-		`)).WithArgs(teacher).WillReturnRows(expectedRow)
+		} else {
+			expectedRow := pgxmock.NewRows([]string{"students"}).AddRow(registeredStudents)
+
+			mock.ExpectQuery(regexp.QuoteMeta(`
+				SELECT array_agg(DISTINCT student) AS students
+				FROM teacher_student_relationship
+				WHERE teacher = $1
+				GROUP BY teacher
+			`)).WithArgs(teacher).WillReturnRows(expectedRow)
+		}
 
 		candidateRecipients := append(mentionedStudents, registeredStudents...)
 		for index, student := range candidateRecipients {
@@ -563,7 +574,17 @@ func TestRetrieveForNotifications(t *testing.T) {
 			[]bool{false, false, false, false},
 			200,
 			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com", "nibbles@gmail.com", "spike@gmail.com", "tyke@gmail.com"}},
-		},		
+		},	
+        {
+			"All valid and existent emails, no registered students", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "Good morning @jerry@gmail.com"},
+			[]string{"jerry@gmail.com"},
+			[]string{},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true}},
+			[]bool{false},
+			200,
+			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com"}},
+		},			
         {
 			"Malformed JSON", 
 			models.RetrieveForNotificationsData{Notification: "Good morning @jerry@gmail.com"},

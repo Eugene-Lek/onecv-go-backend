@@ -134,7 +134,10 @@ func RetrieveForNotifications(retrieveForNotificationsProcessedData RetrieveForN
 		WHERE teacher = $1
 		GROUP BY teacher
 	`, teacher).Scan(&registeredStudents)
-	if err != nil {
+
+	if err == pgx.ErrNoRows {
+		registeredStudents = []string{}
+	} else if err != nil {
 		return nil, err
 	}
 
