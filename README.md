@@ -10,7 +10,7 @@ as `.env.example`
 
 3. Download and install dependencies.
 ```
-$ go get .
+go get .
 ```
 
 4. Setup the PostgreSQL database (using pgAdmin or another tool)
@@ -22,10 +22,10 @@ $ go get .
 
 6. Run the API server:
 ```
-$ go run .
+go run .
 ```
 
 7. Run the unit tests:
 ```
-$ go test
+go test
 ```
