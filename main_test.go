@@ -586,6 +586,16 @@ func TestRetrieveForNotifications(t *testing.T) {
 			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com"}},
 		},			
         {
+			"All valid and existent emails, duplicate students", 
+			models.RetrieveForNotificationsData{Teacher: "tom@gmail.com", Notification: "@tyke@gmail.com Good morning @jerry@gmail.com"},
+			[]string{"tyke@gmail.com", "jerry@gmail.com"},
+			[]string{"nibbles@gmail.com", "spike@gmail.com", "jerry@gmail.com"},
+			models.RetrieveForNotificationsProcessedData[bool]{Teacher: true, Students: []bool{true, true}},
+			[]bool{false, false, false, false, false},
+			200,
+			retrieveForNotificationsSuccessBody{[]string{"jerry@gmail.com", "nibbles@gmail.com", "spike@gmail.com", "tyke@gmail.com"}},
+		},			
+        {
 			"Malformed JSON", 
 			models.RetrieveForNotificationsData{Notification: "Good morning @jerry@gmail.com"},
 			[]string{"jerry@gmail.com"},
