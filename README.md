@@ -36,8 +36,8 @@ go get .
 
 4. Setup the PostgreSQL database (using pgAdmin or another tool)
    * Create the "onecvtest" database owned by "postgres"/root account
-   * Add your local database URL to the .env created in step 1. 
-   (Format: "user=postgres password=[PASSWORD] host=localhost port=5432 dbname=onecvtest")
+   * Add your local database URL to the .env file created in step 2. 
+   * (Format: "user=postgres password=[PASSWORD] host=localhost port=5432 dbname=onecvtest")
 
 5. Run `init_database.sql` via the Query Tool to set up the database tables and relations.
 
